@@ -9,7 +9,7 @@
 #define PRODUCERS_THEARDS 5
 #define CONSUMERS_THEARDS 5
 #define ARRAY_SIZE 10
-#define PROGRAM_TIME_IN_SEC 1.0000
+#define PROGRAM_TIME_IN_SEC 10
 
 time_t startTime;
 int array[ARRAY_SIZE];
@@ -30,13 +30,15 @@ void* producer(void* args) {
 
         sem_wait(&empty);
         pthread_mutex_lock(&mutex);
+
         array[arrayIndexToAdd] = random;
         printf("%f - Producer (ID: %lu) is adding %d to the array (index: %d)\n", (double)(clock() - startTime) / CLOCKS_PER_SEC, currentThreadID, random, arrayIndexToAdd);
+        arrayIndexToAdd++;
+        arrayIndexToAdd %= ARRAY_SIZE;
+
         pthread_mutex_unlock(&mutex);
         sem_post(&full);
 
-        arrayIndexToAdd++;
-        arrayIndexToAdd %= ARRAY_SIZE;
     }
 
     return EXIT_SUCCESS;
@@ -50,13 +52,10 @@ void* consumer(void* args) {
         pthread_mutex_lock(&mutex);
         int item = array[arrayIndexToRemove];
         printf("%f - Consumer (ID: %lu) has consumed a number %d from the array (index: %d)\n", (double)(clock() - startTime) / CLOCKS_PER_SEC, currentThreadID, item, arrayIndexToRemove);
-        pthread_mutex_unlock(&mutex);
-        sem_post(&empty);
-
-
-
         arrayIndexToRemove++;
         arrayIndexToRemove %= ARRAY_SIZE;
+        pthread_mutex_unlock(&mutex);
+        sem_post(&empty);
     }
 
     return EXIT_SUCCESS;
