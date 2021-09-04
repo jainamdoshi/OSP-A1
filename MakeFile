@@ -1,5 +1,0 @@
-all: producerConsumer.c
-	g++ -g -Wall -Werror -o producerConsumer producerConsumer.c -lpthread
-
-clean:
-	rm -rf producerConsumer *.o
