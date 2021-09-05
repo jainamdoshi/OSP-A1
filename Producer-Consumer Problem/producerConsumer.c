@@ -5,31 +5,28 @@
 #include <unistd.h>
 
 
-
+// All constants used in the program
 #define PRODUCERS_THEARDS 5
 #define CONSUMERS_THEARDS 5
 #define ARRAY_SIZE 10
 #define PROGRAM_TIME_IN_SEC 10
-
 #define PRODUCING_TIME 0
 #define CONSUMING_TIME 0
 
-time_t startTime;
+// All global variables shared by all threads
 int array[ARRAY_SIZE];
 int arrayIndexToAdd = 0;
 int arrayIndexToRemove = 0;
-
+int status = 1;
 pthread_mutex_t mutex;
 sem_t empty;
 sem_t full;
-
-int flag = 0;
 
 void* producer(void* args) {
 
     pthread_t currentThreadID = pthread_self();
 
-    while (flag == 0) {
+    while (status) {
         int random = rand();
         printf("Producer (ID: %lu) is producing a number %d\n", currentThreadID, random);
 
@@ -52,7 +49,7 @@ void* producer(void* args) {
 void* consumer(void* args) {
     pthread_t currentThreadID = pthread_self();
 
-    while (flag == 0) {
+    while (status) {
         sem_wait(&full);
         pthread_mutex_lock(&mutex);
         int item = array[arrayIndexToRemove];
@@ -78,7 +75,6 @@ int main(void) {
     sem_init(&full, 0, 0);
     sem_init(&empty, 0, ARRAY_SIZE);
 
-    startTime = clock();
 
     for (int i = 0; i < PRODUCERS_THEARDS; i++) {
         pthread_create(&producerThreads[i], NULL, &producer, NULL);
@@ -90,8 +86,8 @@ int main(void) {
         printf("Consumer (ID: %lu) is created\n", consumerThreads[i]);
     }
 
-    sleep(10);
-    flag = 1;
+    sleep(PROGRAM_TIME_IN_SEC);
+    status = 0;
 
     for (int i = 0; i < PRODUCERS_THEARDS; i++) {
         pthread_join(producerThreads[i], NULL);
