@@ -1,5 +1,5 @@
-all: barber.c
-	gcc -g -Wall -Werror -std=c11 -o barber barber.c -lpthread
+all: barber.cpp
+	g++ -g -Wall -Werror -o barber barber.cpp -lpthread
 
 clean:
 	rm -rf barber *.o
