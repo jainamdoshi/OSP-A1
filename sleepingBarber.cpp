@@ -6,7 +6,6 @@
 #include <vector>
 #include <queue>
 
-
 #define SLOT_SIZE 5
 #define BARBER_THREADS 2
 #define PROGRAM_TIME_IN_SEC 10
@@ -105,7 +104,7 @@ void* customerGenerator(void* args) {
     return EXIT_SUCCESS;
 }
 
-int main(void) {
+int runSleepingBarber() {
 
     srand(time(NULL));
 

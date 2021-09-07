@@ -4,7 +4,6 @@
 #include <semaphore.h>
 #include <unistd.h>
 
-
 // All constants used in the program
 #define PRODUCERS_THEARDS 5
 #define CONSUMERS_THEARDS 5
@@ -17,89 +16,99 @@
 int array[ARRAY_SIZE];
 int arrayIndexToAdd = 0;
 int arrayIndexToRemove = 0;
-int status = 1;
-pthread_mutex_t mutex;
+int pStatus = 1;
+
+pthread_mutex_t arrayMutex;
 sem_t empty;
 sem_t full;
 
 void* producer(void* args) {
-
     pthread_t currentThreadID = pthread_self();
 
-    while (status) {
+    while (pStatus) {
+
+        // Adding more time for producing
+        printf("Producer (ID: %lu) is producing an item\n", currentThreadID);
+        sleep(PRODUCING_TIME);
         int random = rand();
-        printf("Producer (ID: %lu) is producing a number %d\n", currentThreadID, random);
 
+        // Waiting till there is space in the array
         sem_wait(&empty);
-        pthread_mutex_lock(&mutex);
 
+        // Locks and adds the item into the array
+        pthread_mutex_lock(&arrayMutex);
         array[arrayIndexToAdd] = random;
         printf("Producer (ID: %lu) is adding %d to the array (index: %d)\n", currentThreadID, random, arrayIndexToAdd);
         arrayIndexToAdd++;
         arrayIndexToAdd %= ARRAY_SIZE;
-        sleep(PRODUCING_TIME);
-        pthread_mutex_unlock(&mutex);
+
+        // Unlock the mutex and signal other threads who are waiting on full semaphore
+        pthread_mutex_unlock(&arrayMutex);
         sem_post(&full);
-
     }
-
     return EXIT_SUCCESS;
 }
 
 void* consumer(void* args) {
     pthread_t currentThreadID = pthread_self();
 
-    while (status) {
+    while (pStatus) {
+        sleep(CONSUMING_TIME);
         sem_wait(&full);
-        pthread_mutex_lock(&mutex);
+        pthread_mutex_lock(&arrayMutex);
         int item = array[arrayIndexToRemove];
         printf("Consumer (ID: %lu) has consumed a number %d from the array (index: %d)\n", currentThreadID, item, arrayIndexToRemove);
         arrayIndexToRemove++;
         arrayIndexToRemove %= ARRAY_SIZE;
-        sleep(CONSUMING_TIME);
-        pthread_mutex_unlock(&mutex);
+
+        pthread_mutex_unlock(&arrayMutex);
         sem_post(&empty);
     }
 
     return EXIT_SUCCESS;
 }
 
-int main(void) {
+int runProducerConsumer() {
 
-
+    // Seeding the random generator
     srand(time(NULL));
-    pthread_t producerThreads[PRODUCERS_THEARDS];
-    pthread_t consumerThreads[CONSUMERS_THEARDS];
 
-    pthread_mutex_init(&mutex, NULL);
+    // Intializing mutex and semaphores
+    pthread_mutex_init(&arrayMutex, NULL);
     sem_init(&full, 0, 0);
     sem_init(&empty, 0, ARRAY_SIZE);
 
+    // List of all producer and consumer threads
+    pthread_t producerThreads[PRODUCERS_THEARDS];
+    pthread_t consumerThreads[CONSUMERS_THEARDS];
 
+
+    // Creating Producer threads
     for (int i = 0; i < PRODUCERS_THEARDS; i++) {
         pthread_create(&producerThreads[i], NULL, &producer, NULL);
         printf("Producer (ID: %lu) is created\n", producerThreads[i]);
     }
 
+    // Creating Consumer threads
     for (int i = 0; i < CONSUMERS_THEARDS; i++) {
         pthread_create(&consumerThreads[i], NULL, &consumer, NULL);
         printf("Consumer (ID: %lu) is created\n", consumerThreads[i]);
     }
 
+    // Sleep and then change the status
     sleep(PROGRAM_TIME_IN_SEC);
-    status = 0;
+    pStatus = 0;
 
+    // Joining all the threads for no memory loss
     for (int i = 0; i < PRODUCERS_THEARDS; i++) {
         pthread_join(producerThreads[i], NULL);
     }
-
     for (int i = 0; i < CONSUMERS_THEARDS; i++) {
         pthread_join(consumerThreads[i], NULL);
     }
 
-
-
-    pthread_mutex_destroy(&mutex);
+    // Destorying mutex and semaphores
+    pthread_mutex_destroy(&arrayMutex);
     sem_destroy(&empty);
     sem_destroy(&full);
 
