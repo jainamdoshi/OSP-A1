@@ -9,6 +9,7 @@
 #define SLOT_SIZE 5
 #define BARBER_THREADS 2
 #define PROGRAM_TIME_IN_SEC 10
+#define MAX_THREADS 30000
 
 pthread_t slot[SLOT_SIZE];
 pthread_mutex_t mutex;
@@ -41,7 +42,7 @@ void* barber(void* args) {
 
         pthread_mutex_unlock(&mutex);
 
-        sleep((double)((rand() % 1000)) / 1000);
+        sleep((double)(rand() % 1000) / 1000);
         numServed++;
 
         pthread_mutex_lock(&mutex);
@@ -53,9 +54,7 @@ void* barber(void* args) {
             emptySeat->push(slotNum);
             occupiedSeat->pop();
         }
-
         pthread_mutex_unlock(&mutex);
-
     }
 
 
@@ -89,12 +88,18 @@ void* customer(void* args) {
 void* customerGenerator(void* args) {
     std::vector<pthread_t> threadsToJoin;
 
-    while (status) {
+    int threadCount = 0;
+    while (status && threadCount < MAX_THREADS) {
 
-        sleep((double)((rand() % 1000)) / 1000);
+        sleep((double)(rand() % 1000) / 1000);
         pthread_t customerThread;
-        pthread_create(&customerThread, NULL, &customer, NULL);
-        threadsToJoin.push_back(customerThread);
+        if (pthread_create(&customerThread, NULL, &customer, NULL) == 0) {
+            threadsToJoin.push_back(customerThread);
+            threadCount++;
+        } else {
+            printf("Operating System denied creating new thread\n");
+        }
+
     }
 
     for (unsigned int i = 0; i < threadsToJoin.size(); i++) {

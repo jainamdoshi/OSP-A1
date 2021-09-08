@@ -27,8 +27,9 @@ void* producer(void* args) {
 
     while (pStatus) {
 
-        // Adding more time for producing
         printf("Producer (ID: %lu) is producing an item\n", currentThreadID);
+
+        // Adding more time for producing
         sleep(PRODUCING_TIME);
         int random = rand();
 
@@ -53,18 +54,23 @@ void* consumer(void* args) {
     pthread_t currentThreadID = pthread_self();
 
     while (pStatus) {
+        // Adding more time for producing
         sleep(CONSUMING_TIME);
+
+        // Wait till there is an item in the array
         sem_wait(&full);
+
+        // Locks and removes item from the array
         pthread_mutex_lock(&arrayMutex);
         int item = array[arrayIndexToRemove];
-        printf("Consumer (ID: %lu) has consumed a number %d from the array (index: %d)\n", currentThreadID, item, arrayIndexToRemove);
+        printf("Consumer (ID: %lu) has consumed a number %d from the array(index: % d)\n", currentThreadID, item, arrayIndexToRemove);
         arrayIndexToRemove++;
         arrayIndexToRemove %= ARRAY_SIZE;
 
+        // Unlock the mutex and signal other threads who are waiting on empty semaphore
         pthread_mutex_unlock(&arrayMutex);
         sem_post(&empty);
     }
-
     return EXIT_SUCCESS;
 }
 
