@@ -9,9 +9,9 @@
 #define SLOT_SIZE 5
 #define BARBER_THREADS 2
 #define PROGRAM_TIME_IN_SEC 10
-#define MAX_THREADS 30000
+#define MAX_THREADS 32000
 
-pthread_t barberThreads[BARBER_THREADS];
+
 pthread_t slot[SLOT_SIZE];
 pthread_mutex_t mutex;
 pthread_cond_t notifyBarber;
@@ -21,7 +21,6 @@ std::queue<int>* occupiedSeat;
 
 int status = 1;
 int numCustomer = 0;
-int isBarberAsleep = 1;
 int maxServed = 0;
 
 void* barber(void* args) {
@@ -51,21 +50,17 @@ void* barber(void* args) {
             pthread_cond_wait(&notifyBarber, &mutex);
         }
 
-        pthread_mutex_unlock(&mutex);
-
         if (status) {
+            pthread_mutex_unlock(&mutex);
             sleep((double)(rand() % 1000) / 1000);
-            numServed++;
-        }
-
-        pthread_mutex_lock(&mutex);
-        if (status) {
+            pthread_mutex_lock(&mutex);
             numCustomer--;
+            numServed++;
             if (occupiedSeat->size() > 0) {
                 int slotNum = occupiedSeat->front();
-                printf("Barber (ID: %lu) served customer on slot %d. Total Served: %d\n", id, slotNum, numServed);
-                slot[slotNum] = 0;
                 emptySeat->push(slotNum);
+                printf("Barber (ID: %lu) served customer on slot %d. Total Served: %d. Slots left %ld\n", id, slotNum, numServed, emptySeat->size() + 1);
+                slot[slotNum] = 0;
                 occupiedSeat->pop();
             }
         }
@@ -87,7 +82,7 @@ void* customer(void* args) {
             slot[slotNum] = id;
             occupiedSeat->push(slotNum);
             numCustomer++;
-            printf("Customer (ID: %lu) has arrived the barber shop and is sitting on slot %d\n", id, slotNum);
+            printf("Customer (ID: %lu) has arrived the barber shop and is sitting on slot %d. Slots left %ld\n", id, slotNum, emptySeat->size());
             emptySeat->pop();
             customerEntered = 1;
         } else {
@@ -111,7 +106,6 @@ void* customerGenerator(void* args) {
 
     int threadCount = 0;
     while (status && threadCount < MAX_THREADS) {
-
         sleep((double)(rand() % 1000) / 1000);
         pthread_t customerThread;
         if (pthread_create(&customerThread, NULL, &customer, NULL) == 0) {
@@ -136,16 +130,17 @@ void* customerGenerator(void* args) {
 
 int runSleepingBarber() {
 
+    // Seeding the random generator
     srand(time(NULL));
 
+    // Initializing data structures
     emptySeat = new std::queue<int>();
     occupiedSeat = new std::queue<int>();
-
     for (int i = 0; i < SLOT_SIZE; i++) {
         emptySeat->push(i);
     }
 
-
+    pthread_t barberThreads[BARBER_THREADS];
     pthread_mutex_init(&mutex, NULL);
     pthread_cond_init(&notifyBarber, NULL);
 
@@ -158,6 +153,7 @@ int runSleepingBarber() {
     pthread_create(&customerGeneratorThread, NULL, &customerGenerator, NULL);
 
     sleep(PROGRAM_TIME_IN_SEC);
+    printf("\nTimes Up! Barber shop closing\n\n");
     status = 0;
 
     pthread_cond_broadcast(&notifyBarber);

@@ -6,7 +6,7 @@ int runSleepingBarber();
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
-        printf("No arguments provided. Usage: ./simulation [1-3]\n. 1 for Producer-Consumer, 2 for Sleeping Barber and 3 for both\n");
+        printf("No arguments provided. Usage: ./simulation [1-3].\n1 for Producer-Consumer, 2 for Sleeping Barber and 3 for both\n");
         return EXIT_FAILURE;
     }
 
